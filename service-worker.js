@@ -23,18 +23,41 @@ const urlsToCache = [
 
 // Install Event
 self.addEventListener('install', (event) => {
+    console.log("Service Worker installing...");
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
+            console.log("Caching files...");
             return cache.addAll(urlsToCache);
         })
     );
 });
 
+self.addEventListener('activate', (event) => {
+    console.log("Service Worker activated...");
+});
+
+
 // Fetch Event
 self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request).then((response) => {
-            return response || fetch(event.request);
+            // If the file is in the cache, return it
+            if (response) {
+                return response;
+            }
+
+            // Else, fetch from the network
+            return fetch(event.request).then((networkResponse) => {
+                // Optionally add new files to cache here
+                return caches.open(CACHE_NAME).then((cache) => {
+                    // Only cache certain types of responses
+                    if (event.request.url.includes('.html') || event.request.url.includes('.css') || event.request.url.includes('.js')) {
+                        cache.put(event.request, networkResponse.clone());
+                    }
+                    return networkResponse;
+                });
+            });
         })
     );
 });
+
