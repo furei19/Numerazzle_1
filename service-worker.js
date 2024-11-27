@@ -47,18 +47,26 @@ self.addEventListener('fetch', (event) => {
                 return response;
             }
 
-            // Else, fetch from the network
-            return fetch(event.request).then((networkResponse) => {
-                // Optionally add new files to cache here
-                return caches.open(CACHE_NAME).then((cache) => {
-                    // Only cache certain types of responses
-                    if (event.request.url.includes('.html') || event.request.url.includes('.css') || event.request.url.includes('.js')) {
-                        cache.put(event.request, networkResponse.clone());
-                    }
-                    return networkResponse;
+            // Check if the request comes from the same origin as the service worker
+            if (event.request.url.startsWith(self.location.origin)) {
+                return fetch(event.request).then((networkResponse) => {
+                    return caches.open(CACHE_NAME).then((cache) => {
+                        // Only cache HTML, CSS, JS, and images
+                        if (event.request.url.includes('.html') || 
+                            event.request.url.includes('.css') || 
+                            event.request.url.includes('.js') || 
+                            event.request.url.includes('.png')) {
+                            cache.put(event.request, networkResponse.clone());
+                        }
+                        return networkResponse;
+                    });
                 });
-            });
+            }
+
+            // If the request is not from the same origin, don't cache it
+            return fetch(event.request);
         })
     );
 });
+
 
